@@ -82,10 +82,6 @@ def draw_edge(chars, chars2, keyboard, bipartite, self_loop):
     # if we produced a self loop but they are not allowed
     # we generate a new edge by running the whole function 
     # again
-    #if(src == dst):
-    #    print 'produced self loop'
-    #if (src == '' or dst == ''):
-    #    print 'src or dst empty'
     if ((not self_loop) and (src == dst)) or (src == '' or dst == ''):
         return draw_edge(chars, chars2, keyboard, bipartite, self_loop)
     else:
