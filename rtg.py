@@ -13,16 +13,16 @@ def rtg(num_edges, num_chars, beta, q, num_timeticks,
     all_chars2 = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 
                   'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
-    chars = all_chars[:num_chars] + ['_']
+    chars = all_chars[:num_chars] + ['#']
     if bipartite:
-        chars2 = all_chars2[:num_chars] + ['_']
+        chars2 = all_chars2[:num_chars] + ['$']
     else:
-        chars2 = all_chars[:num_chars] + ['_']  
+        chars2 = all_chars[:num_chars] + ['#']  
 
     keyboard = create_2d_keyboard(num_chars, q, beta)
     edges = []
     for _ in range(num_edges):
-        edges.append(draw_edge(chars, chars2, keyboard,
+        edges.append(create_edge(chars, chars2, keyboard,
                         bipartite, self_loop))
     return edges
 
@@ -55,34 +55,43 @@ def create_2d_keyboard(num_chars, q, beta):
 
     
 # TODO: add timestamp
-def draw_edge(chars, chars2, keyboard, bipartite, self_loop):
+def create_edge(chars, chars2, keyboard, bipartite, self_loop):
     src_finished = False
     dst_finished = False
     src = ''
     dst = ''
-    char_combi_without_underscore =  np.fromiter(it.product(chars[:-1], chars2[:-1]), 
-                                dtype='1str,1str')
-    small_keyboard = keyboard[:-1, :-1]
-    small_keyboard = small_keyboard / small_keyboard.sum()
-    src, dst = np.random.choice(char_combi_without_underscore, p=small_keyboard.flatten())
-    
     char_combi = np.fromiter(it.product(chars, chars2), 
-                                dtype='1str,1str')
+                                dtype='1str,1str')    
+    
+    if not self_loop and not bipartite:
+        # for the first try the key that produces a selfloop
+        # on the delimeter is permitted (to reduce the number 
+        # of selfloops)
+        first_try_keyboard = np.copy(keyboard)
+        first_try_keyboard[-1, -1] = 0
+        first_try_keyboard = first_try_keyboard / first_try_keyboard.sum()
+        src, dst = np.random.choice(char_combi, p=first_try_keyboard.flatten())
+        if src == '#':
+            src_finished = True
+        if dst == '#' or dst == '$':
+            dst_finished = True
+    
+    
     while not (src_finished and dst_finished):
         s, d = np.random.choice(char_combi, p=keyboard.flatten())
-        if s == '_':
-            src_finished = True
-        if d == '_':
-            dst_finished = True
         if not src_finished:
             src += s
         if not dst_finished:
             dst += d
+        if s == '#':
+            src_finished = True
+        if d == '#' or d == '$':
+            dst_finished = True
 
     # if we produced a self loop but they are not allowed
     # we generate a new edge by running the whole function 
     # again
-    if ((not self_loop) and (src == dst)) or (src == '' or dst == ''):
-        return draw_edge(chars, chars2, keyboard, bipartite, self_loop)
+    if ((not self_loop) and (src == dst)):
+        return create_edge(chars, chars2, keyboard, bipartite, self_loop)
     else:
         return (src, dst)
